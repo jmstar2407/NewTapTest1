@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscar en Google</title>
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+
+<body>
+
+    <video id="bg-video" autoplay muted loop>
+        <source src="./css/img/backgrounds/BackgroundVideo1.mp4" type="video/mp4">
+    </video>
+  
+    <div id="bg-image"></div>
+
+    <!-- Cuadro de noticias -->
+    <div id="news-box">
+        <h2>Noticias de Google</h2>
+        <div id="news-content"></div>
+    </div>
+
+    <!-- Buscadores -->
+    <div class="searchboxmaster">
+        <div class="searchengineselection">
+            <div class="googleselection"></div>
+            <div class="bingselection"></div>
+            <div class="duckduckgoeselection"></div>
+        </div>
+
+        <!-- Google -->
+        <div class="search-container">
+            <input type="text" id="query" name="q" placeholder="Buscar en Google" required />
+            <button type="button" class="clear-button" id="clear-button"></button>
+            <button type="button" class="mic-button" id="start-button"></button>
+            <button type="button" class="search-button" id="search-button"></button>
+        </div>
+
+        <div class="search-type-buttons">
+            <input type="radio" id="web" name="searchType" value="web" checked />
+            <label for="web">Web</label>
+            <input type="radio" id="isch" name="searchType" value="isch" />
+            <label for="isch">Imágenes</label>
+            <input type="radio" id="vid" name="searchType" value="vid" />
+            <label for="vid">Videos</label>
+            <input type="radio" id="nws" name="searchType" value="nws" />
+            <label for="nws">Noticias</label>
+            <input type="radio" id="maps" name="searchType" value="maps" />
+            <label for="maps">Mapas</label>
+        </div>
+
+        <div class="overlay" id="overlay">
+            <div>
+                <div class="pulse-ring"></div>
+                <div>Escuchando...</div>
+            </div>
+        </div>
+        <!-- Google Fin -->
+    </div>
+    <!-- Buscadores FIN -->
+
+    <script>
+        // Variables
+        var queryInput = document.getElementById('query');
+        var searchButton = document.getElementById('search-button');
+        var micButton = document.getElementById('start-button');
+        var clearButton = document.getElementById('clear-button');
+    
+        var overlay = document.getElementById('overlay');
+    
+        // Función para habilitar o deshabilitar botones según el contenido del campo de búsqueda
+        function toggleButtons() {
+            if (queryInput.value.trim() !== '') {
+                searchButton.classList.add('active'); // Mostrar botón de búsqueda activo
+                clearButton.classList.add('active'); // Mostrar botón de limpiar
+            } else {
+                searchButton.classList.remove('active'); // Ocultar botón de búsqueda activo
+                clearButton.classList.remove('active'); // Ocultar botón de limpiar
+            }
+        }
+    
+        // Evento al escribir en el campo de búsqueda
+        queryInput.addEventListener('input', function() {
+            toggleButtons();
+        });
+    
+        // Evento al hacer clic en el botón de búsqueda
+        searchButton.addEventListener('click', function() {
+            var searchType = document.querySelector('input[name="searchType"]:checked').value;
+            var query = queryInput.value.trim();
+            var actionUrl;
+    
+            switch (searchType) {
+                case 'isch':
+                    actionUrl = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(query);
+                    break;
+                case 'vid':
+                    actionUrl = 'https://www.google.com/search?tbm=vid&q=' + encodeURIComponent(query);
+                    break;
+                case 'nws':
+                    actionUrl = 'https://www.google.com/search?tbm=nws&q=' + encodeURIComponent(query);
+                    break;
+                case 'maps':
+                    actionUrl = 'https://www.google.com/maps/search/' + encodeURIComponent(query);
+                    break;
+                default:
+                    actionUrl = 'https://www.google.com/search?q=' + encodeURIComponent(query);
+            }
+    
+            if (query !== '') {
+                window.location.href = actionUrl;
+            }
+        });
+    
+        // Evento al hacer clic en el botón de limpiar
+        clearButton.addEventListener('click', function() {
+            queryInput.value = '';
+            toggleButtons();
+        });
+    
+        // Web Speech API
+        var recognizing = false;
+        var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'es-ES';
+    
+        recognition.onstart = function() {
+            recognizing = true;
+            overlay.classList.add('active');
+        };
+    
+        recognition.onresult = function(event) {
+            var transcript = event.results[0][0].transcript;
+            queryInput.value = transcript;
+            overlay.classList.remove('active');
+            var formEvent = new Event('submit', { bubbles: true, cancelable: true });
+            document.getElementById('searchForm').dispatchEvent(formEvent);
+        };
+    
+        recognition.onerror = function(event) {
+            console.error("Voice recognition error: " + event.error);
+            overlay.classList.remove('active');
+        };
+    
+        recognition.onend = function() {
+            recognizing = false;
+            overlay.classList.remove('active');
+        };
+    
+        // Evento al hacer clic en el botón de micrófono
+        micButton.addEventListener('click', function() {
+            if (recognizing) {
+                recognition.stop();
+                return;
+            }
+            recognition.start();
+        });
+    
+        // Cargar noticias al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchNews();
+        });
+    
+        // Función para cargar noticias
+        function fetchNews() {
+            const apiKey = '1540e401ee084db1b3b94bdc1ff4b501; // Reemplaza con tu clave de API de noticias'
+            const url = `https://newsapi.org/v2/top-headlines?sources=google-news&apiKey=1540e401ee084db1b3b94bdc1ff4b501`;
+    
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.articles && data.articles.length > 0) {
+                        const newsContainer = document.getElementById('news-content');
+                        newsContainer.innerHTML = '';
+                        data.articles.forEach(article => {
+                            const newsItem = document.createElement('div');
+                            newsItem.className = 'news-item';
+                            newsItem.innerHTML = `
+                                <h3><a href="${article.url}" target="_blank">${article.title}</a></h3>
+                                <p>${article.description}</p>
+                            `;
+                            newsContainer.appendChild(newsItem);
+                        });
+                    } else {
+                        console.error('No se encontraron artículos en la respuesta de la API.');
+                        document.getElementById('news-content').innerHTML = 'No se encontraron noticias.';
+                    }
+                })
+                .catch(error => console.error('Error al cargar noticias:', error));
+        }
+    </script>
+    
+
+    <!-- <script src="./js/temas.js"></script> -->
+
+</body>
+</html>
